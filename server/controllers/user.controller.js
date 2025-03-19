@@ -114,6 +114,9 @@ export const editProfile = async (req, res) => {
         const profilePicture = req.file;
         let cloudResponse;
 
+        console.log(req.body);
+    console.log(req.file);  // Check if file is being received
+
         if (profilePicture) {
             const fileUri = getDataUri(profilePicture);
             cloudResponse = await cloudinary.uploader.upload(fileUri);
@@ -145,7 +148,13 @@ export const editProfile = async (req, res) => {
 };
 export const getSuggestedUsers = async (req, res) => {
     try {
-        const suggestedUsers = await User.find({ _id: { $ne: req.id } }).select("-password"); //suggest users(whose id is not equal to users id)..
+        const user = await User.findById(req.id);
+        const suggestedUsers = await User.find({ 
+            _id: { $ne: req.id, $nin: user.following } 
+        }).select("-password").limit(10);
+
+        //suggest users(whose id is not equal to users id)..and exclude already followed users..
+
         if (!suggestedUsers) {
             return res.status(400).json({
                 message: 'Currently do not have any users',

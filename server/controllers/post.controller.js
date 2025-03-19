@@ -14,26 +14,31 @@ export const addNewPost = async (req, res) => {
         if (!image) return res.status(400).json({ message: 'Image required' });
 
         // image upload 
-        const optimizedImageBuffer = await sharp(image.buffer)
+        const optimizedImageBuffer = await sharp(image.buffer)  //sharp module se image ko resize wgera, quality wgera sambhal skte
             .resize({ width: 800, height: 800, fit: 'inside' })
             .toFormat('jpeg', { quality: 80 })
             .toBuffer();
 
-        // buffer to data uri
+        // buffer to data uri..datauri module se bhi krskte the aur ase bhi krskte ..
+        //fir datauri ko cloudinary me upload krdenge..
         
         const fileUri = `data:image/jpeg;base64,${optimizedImageBuffer.toString('base64')}`;
         const cloudResponse = await cloudinary.uploader.upload(fileUri);
+
         const post = await Post.create({
             caption,
             image: cloudResponse.secure_url,
             author: authorId
         });
+
         const user = await User.findById(authorId);
+        //user model me posts array hai umse post id daldia..aur save krdia..
         if (user) {
             user.posts.push(post._id);
             await user.save();
         }
-
+       //simiallrly post model me bhi user ka refrence hai...use bhi populate krdia..
+       
         await post.populate({ path: 'author', select: '-password' });
 
         return res.status(201).json({
