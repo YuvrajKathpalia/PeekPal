@@ -38,7 +38,7 @@ export const addNewPost = async (req, res) => {
             await user.save();
         }
        //simiallrly post model me bhi user ka refrence hai...use bhi populate krdia..
-       
+
         await post.populate({ path: 'author', select: '-password' });
 
         return res.status(201).json({
@@ -78,10 +78,12 @@ export const getAllPost = async (req, res) => {
 export const getUserPost = async (req, res) => {
     try {
         const authorId = req.id;
-        const posts = await Post.find({ author: authorId }).sort({ createdAt: -1 }).populate({
+        const posts = await Post.find({ author: authorId }).sort({ createdAt: -1 })
+        .populate({
             path: 'author',
             select: 'username, profilePicture'
-        }).populate({
+        })
+        .populate({
             path: 'comments',
             sort: { createdAt: -1 },
             populate: {
@@ -174,6 +176,7 @@ export const addComment = async (req,res) =>{
         console.log(error);
     }
 };
+
 export const getCommentsOfPost = async (req,res) => {
     try {
         const postId = req.params.id;
@@ -188,6 +191,7 @@ export const getCommentsOfPost = async (req,res) => {
         console.log(error);
     }
 }
+
 export const deletePost = async (req,res) => {
     try {
         const postId = req.params.id;
@@ -200,16 +204,19 @@ export const deletePost = async (req,res) => {
         if(post.author.toString() !== authorId) return res.status(403).json({message:'Unauthorized'});
 
     
-        await Post.findByIdAndDelete(postId);
+        await Post.findByIdAndDelete(postId);  //db se post delete.
 
-        // remove the post id from the user's post..
+        // remove the post id from the user's post array
+
         let user = await User.findById(authorId);
-        user.posts = user.posts.filter(id => id.toString() !== postId);
+
+        user.posts = user.posts.filter(id => id.toString() !== postId); 
+          //posts array me filter krdo , whi post show kro jinki id postid( ofdelete krne wala post) ke equal ni..phle post ki object id ko string me convert ..
         await user.save();
 
         // delete those comments...
 
-        await Comment.deleteMany({post:postId});
+        await Comment.deleteMany({post:postId}); //sare comments hatado us post ke..
 
         return res.status(200).json({
             success:true,
@@ -224,7 +231,9 @@ export const bookmarkPost = async (req,res) => {
     try {
         const postId = req.params.id;
         const authorId = req.id;
+
         const post = await Post.findById(postId);
+
         if(!post) return res.status(404).json({message:'Post not found', success:false});
         
         const user = await User.findById(authorId);
@@ -233,6 +242,7 @@ export const bookmarkPost = async (req,res) => {
 
             await user.updateOne({$pull:{bookmarks:post._id}});
             await user.save();
+            
             return res.status(200).json({type:'unsaved', message:'Post removed from bookmark', success:true});
 
         }else{
